@@ -275,11 +275,16 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     float k_d = 1.5;
     float cs = 30;
     float rotVel_gain = 0.4;
-    float advVel_gain = 1.2;
+    float AdvVel_gain = 1.2;
     float rotVel_gain_dot = 0.1;
-    float advVel_gain_dot = 0.1;
+    float AdvVel_gain_dot = 0.1;
     float dt = 0.01;
-    float alpha_rot = 1;
+    // float rotVel_gain_min = 0.4;
+    // float rotVel_gain_max = 0.6;
+    // float AdvVel_gain_min = 1.2;
+    // float AdvVel_gain_max = 1.5;
+    float k_rot = 0.0001;
+    float k_adv = 1e-7;
     
     // Compute euclidean distance to target
     float euc_dist_to_target = (robot_pose - target).norm();
@@ -337,37 +342,61 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     //Adding Sliding Mode Controller Code
     // float psi = k_thetaP*theta_p + k_d*signed_distance;
     // float psi_norm = norm(psi);
-    float epsilon = 0.0001;
+    float epsilon = 0.01;
     float d_r_dot = sin(theta_p) * adv_vel_ant; //For Sliding Mode
-    float temp = k_thetaP*theta_p + k_d*signed_distance;
-    float phi_temp = temp - epsilon/norm(temp - epsilon);
-    float w1 = -(((k_phi*temp) + (k_d*d_r_dot))/k_thetaP);
+    float psi = k_thetaP*theta_p + k_d*signed_distance;
+    float psi_norm = norm(psi);
+    float psi_sgn = psi - epsilon/norm(psi - epsilon);
+    float w1 = -(((k_phi*psi) + (k_d*d_r_dot))/k_thetaP);
     float phi = atan(consts.robot_radius*((w1/adv_vel_ant) + cs*(cos(theta_p)/(1 - cs*signed_distance))));
 
 
     //
     sideVel = consts.lateral_correction_for_side_velocity * correction;
-    // printf("psi_norm");
-    // printf("%f\n",psi_norm);
 
-    float rotVel_gain_dot_temp;
-    float rotVel_gain_temp;
+    // Adaptive law for Rotational Velocity gain
+
+
+    float rotVel_gain_dot_temp = rotVel_gain_dot;
+    float rotVel_gain_temp = rotVel_gain;
+
+    rotVel_gain_dot_temp = k_rot*norm(k_thetaP*theta_p)*(k_thetaP*theta_p - epsilon/norm(k_thetaP*theta_p - epsilon)); 
+    rotVel_gain_temp = rotVel_gain_temp + rotVel_gain_dot_temp*dt;
+    // rotVel_gain_dot = k_bar*psi_norm*psi_sgn;
+
 
     rotVel_gain_dot =  rotVel_gain_dot_temp;
     rotVel_gain =  rotVel_gain_temp;
-
-    rotVel_gain = (rotVel_gain + rotVel_gain_dot*dt);
-    rotVel_gain_dot = phi_temp*theta_p - alpha_rot*rotVel_gain;
-
 
     printf("rotVel_gain");
     printf("%f\n",rotVel_gain);
     printf("rotVel_gain_dot");
     printf("%f\n",rotVel_gain_dot);
 
+    // Adaptive law for Rotational Velocity gain
+
+    float AdvVel_gain_dot_temp = AdvVel_gain_dot;
+    float AdvVel_gain_temp = AdvVel_gain;
+
+
+    AdvVel_gain_dot_temp = k_adv*norm(k_d*signed_distance)*(k_d*signed_distance - epsilon/norm(k_d*signed_distance - epsilon));
+    AdvVel_gain_temp = AdvVel_gain + AdvVel_gain_dot_temp*dt;
+
+
+    // AdvVel_gain = std::clamp(AdvVel_gain,AdvVel_gain_min,AdvVel_gain_max);
+
+    AdvVel_gain_dot =  AdvVel_gain_dot_temp;
+    AdvVel_gain =  AdvVel_gain_temp;
+
+
+    printf("AdvVel_gain");
+    printf("%f\n",AdvVel_gain);
+    printf("AdvVel_gain_dot");
+    printf("%f\n",AdvVel_gain_dot);
+
     // rot speed gain
     // rotVel = consts.rotation_gain * angle;
-    rotVel = consts.rotation_gain * phi* -0.4;
+    rotVel = consts.rotation_gain * phi* -(rotVel_gain);
 
     // qInfo() << __FUNCTION__  << " angle error: " << angle << " correction: " << correction << " rorVel" << rotVel << " gain" << consts.rotation_gain << " max_rot_speed" << consts.max_rot_speed;
 
@@ -382,7 +411,7 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
                       euc_dist_to_target);
     adv_vel_ant = advVel;
 
-    return std::make_tuple(advVel*advVel_gain, 0.0, rotVel);
+    return std::make_tuple(advVel*abs(AdvVel_gain), 0.0, rotVel);
 }
 
 //
