@@ -274,6 +274,12 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     float k_thetaP = 50;
     float k_d = 1.5;
     float cs = 30;
+    float rotVel_gain = 0.4;
+    float advVel_gain = 1.2;
+    float rotVel_gain_dot = 0.1;
+    float advVel_gain_dot = 0.1;
+    float dt = 0.01;
+    float alpha_rot = 1;
     
     // Compute euclidean distance to target
     float euc_dist_to_target = (robot_pose - target).norm();
@@ -329,20 +335,41 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
 
 
     //Adding Sliding Mode Controller Code
+    // float psi = k_thetaP*theta_p + k_d*signed_distance;
+    // float psi_norm = norm(psi);
+    float epsilon = 0.0001;
     float d_r_dot = sin(theta_p) * adv_vel_ant; //For Sliding Mode
     float temp = k_thetaP*theta_p + k_d*signed_distance;
-    float phi_temp = temp/norm(temp);
+    float phi_temp = temp - epsilon/norm(temp - epsilon);
     float w1 = -(((k_phi*temp) + (k_d*d_r_dot))/k_thetaP);
     float phi = atan(consts.robot_radius*((w1/adv_vel_ant) + cs*(cos(theta_p)/(1 - cs*signed_distance))));
 
+
     //
     sideVel = consts.lateral_correction_for_side_velocity * correction;
+    // printf("psi_norm");
+    // printf("%f\n",psi_norm);
+
+    float rotVel_gain_dot_temp;
+    float rotVel_gain_temp;
+
+    rotVel_gain_dot =  rotVel_gain_dot_temp;
+    rotVel_gain =  rotVel_gain_temp;
+
+    rotVel_gain = (rotVel_gain + rotVel_gain_dot*dt);
+    rotVel_gain_dot = phi_temp*theta_p - alpha_rot*rotVel_gain;
+
+
+    printf("rotVel_gain");
+    printf("%f\n",rotVel_gain);
+    printf("rotVel_gain_dot");
+    printf("%f\n",rotVel_gain_dot);
 
     // rot speed gain
     // rotVel = consts.rotation_gain * angle;
-    rotVel = consts.rotation_gain * phi * 0.4;
+    rotVel = consts.rotation_gain * phi* -0.4;
 
-    qInfo() << __FUNCTION__  << " angle error: " << angle << " correction: " << correction << " rorVel" << rotVel << " gain" << consts.rotation_gain << " max_rot_speed" << consts.max_rot_speed;
+    // qInfo() << __FUNCTION__  << " angle error: " << angle << " correction: " << correction << " rorVel" << rotVel << " gain" << consts.rotation_gain << " max_rot_speed" << consts.max_rot_speed;
 
     // limit angular  values to physical limits
     rotVel = std::clamp(rotVel, -consts.max_rot_speed, consts.max_rot_speed);
@@ -355,7 +382,7 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
                       euc_dist_to_target);
     adv_vel_ant = advVel;
 
-    return std::make_tuple(advVel*1.2, 0.0, -rotVel);
+    return std::make_tuple(advVel*advVel_gain, 0.0, rotVel);
 }
 
 //
