@@ -124,13 +124,13 @@ class SpecificWorker : public GenericWorker
             float robot_length = 500;
             float robot_width = 400;
             float robot_radius = robot_length / 2.0;
-            float max_adv_speed = 2000;
-            float max_rot_speed = 3;
+            float max_adv_speed = 20000;
+            float max_rot_speed = 30;
             float max_side_speed = 400;
             float max_lag = 100;  // ms
             float lateral_correction_gain = 0.2;
             float lateral_correction_for_side_velocity = 500;
-            float rotation_gain = 0.9;
+            float rotation_gain = 5;
             float times_final_distance_to_target_before_zero_rotation = 3;
             float advance_gaussian_cut_x = 0.7;
             float advance_gaussian_cut_y = 0.3;

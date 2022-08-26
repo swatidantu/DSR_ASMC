@@ -318,15 +318,21 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     auto e_tangent = Eigen::Hyperplane<float, 2>::Through(Eigen::Vector2f(tangent.p1().x(), tangent.p1().y()),
                                                           Eigen::Vector2f(tangent.p2().x(), tangent.p2().y()));
     float signed_distance = e_tangent.signedDistance(robot_nose);
-
+    printf("Signed Distance :");
+    printf("%f\n", signed_distance);
     //float correction = consts.lateral_correction_gain * tanh(signed_distance);
     adv_vel_ant = std::clamp(adv_vel_ant, 10.f, 1000.f);
     float correction = atan2( consts.lateral_correction_gain * signed_distance, adv_vel_ant);
     angle +=  correction;
+    printf("correction :");
+    printf("%f\n", correction);
+
 
     //Adding Sliding Mode Controller Code
     float d_r_dot = sin(theta_p) * adv_vel_ant; //For Sliding Mode
-    float w1 = -(((k_phi*k_thetaP*theta_p) + (k_phi*k_d*signed_distance) + (k_d*d_r_dot))/k_thetaP);
+    float temp = k_thetaP*theta_p + k_d*signed_distance;
+    float phi_temp = temp/norm(temp);
+    float w1 = -(((k_phi*temp) + (k_d*d_r_dot))/k_thetaP);
     float phi = atan(consts.robot_radius*((w1/adv_vel_ant) + cs*(cos(theta_p)/(1 - cs*signed_distance))));
 
     //
@@ -334,7 +340,7 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
 
     // rot speed gain
     // rotVel = consts.rotation_gain * angle;
-    rotVel = consts.rotation_gain * phi;
+    rotVel = consts.rotation_gain * phi * 0.4;
 
     qInfo() << __FUNCTION__  << " angle error: " << angle << " correction: " << correction << " rorVel" << rotVel << " gain" << consts.rotation_gain << " max_rot_speed" << consts.max_rot_speed;
 
@@ -349,7 +355,7 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
                       euc_dist_to_target);
     adv_vel_ant = advVel;
 
-    return std::make_tuple(advVel, 0.0, -rotVel*0.5);
+    return std::make_tuple(advVel*1.2, 0.0, -rotVel);
 }
 
 //
