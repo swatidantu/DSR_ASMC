@@ -276,10 +276,10 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     float cs = 30;
     float rotVel_gain = 0.4;
     float AdvVel_gain = 1.2;
-    float rotVel_gain_dot = 0.01;
+    float rotVel_gain_dot = 0.1;
     float AdvVel_gain_dot = 0.1;
     float dt = 0.01;
-    float k_rot = 0.01;
+    float k_rot = 0.001;
     float k_adv = 1e-7;
     
     // Compute euclidean distance to target
