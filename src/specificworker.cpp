@@ -277,7 +277,7 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     float rotVel_gain = 0.4;
     float AdvVel_gain = 1.1;
     float rotVel_gain_dot = 0.1;
-    float AdvVel_gain_dot = 0.01;
+    float AdvVel_gain_dot = 0.1;
     float dt = 0.01;
     float k_rot = 0.0001;
     float k_adv = 1e-7;
@@ -363,6 +363,7 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
 
     rotVel_gain_dot =  rotVel_gain_dot_temp;
     rotVel_gain =  rotVel_gain_temp;
+    // rotVel_gain = 0.4;
 
     printf("rotVel_gain");
     printf("%f\n",rotVel_gain);
