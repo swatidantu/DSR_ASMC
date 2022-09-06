@@ -273,7 +273,7 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     float k_phi = 15;
     float k_thetaP = 50;
     float k_d = 1.5;
-    float cs = consts.robot_radius;
+    float cs = 30;
     float rotVel_gain = 0.4;
     float AdvVel_gain = 0.9;
     float AdvVel_gain_max = 1.2;
@@ -311,7 +311,7 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     // closest point to robot nose in path
     auto closest_point_to_nose = std::ranges::min_element(path, [robot_nose](auto &a, auto &b){ return (robot_nose - a).norm() < (robot_nose - b).norm();});
     printf("closest_point_to_nose :");
-    cout << std::distance(path.cbegin(), closest_point_to_nose) << endl << std::distance(closest_point_to_nose, path.cend()) << endl;
+
 
     // compute angle between robot-to-nose line and  tangent to closest point in path
     QLineF tangent;
@@ -327,6 +327,7 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     // compute distance to path to cancel stationary error
     auto e_tangent = Eigen::Hyperplane<float, 2>::Through(Eigen::Vector2f(tangent.p1().x(), tangent.p1().y()),
                                                           Eigen::Vector2f(tangent.p2().x(), tangent.p2().y()));
+
     float signed_distance = e_tangent.signedDistance(robot_nose);
     printf("Signed Distance :");
     printf("%f\n", signed_distance);
@@ -334,18 +335,16 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     adv_vel_ant = std::clamp(adv_vel_ant, 10.f, 1000.f);
     float correction = atan2( consts.lateral_correction_gain * signed_distance, adv_vel_ant);
     angle +=  correction;
-    // printf("correction :");
-    // printf("%f\n", correction);
+    printf("correction :");
+    printf("%f\n", correction);
 
 
     //Adding Sliding Mode Controller Code
     // float psi = k_thetaP*theta_p + k_d*signed_distance;
     // float psi_norm = norm(psi);
-    float epsilon = 0.01;
+    float epsilon = 0.0001;
     float d_r_dot = sin(theta_p) * adv_vel_ant; //For Sliding Mode
     float psi = k_thetaP*theta_p + k_d*signed_distance;
-    float psi_norm = norm(psi);
-    float psi_sgn = psi - epsilon/norm(psi - epsilon);
     float w1 = -(((k_phi*psi) + (k_d*d_r_dot))/k_thetaP);
     float phi = atan(consts.robot_radius*((w1/adv_vel_ant) + cs*(cos(theta_p)/(1 - cs*signed_distance))));
 
@@ -359,8 +358,8 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     float rotVel_gain_dot_temp = rotVel_gain_dot;
     float rotVel_gain_temp = rotVel_gain;
 
-    rotVel_gain_dot_temp = k_rot*norm(k_thetaP*theta_p)*(k_thetaP*theta_p - epsilon/norm(k_thetaP*theta_p - epsilon)); 
-    rotVel_gain_temp = rotVel_gain_temp + rotVel_gain_dot_temp*dt;
+    rotVel_gain_dot_temp = k_rot*(correction+epsilon/norm(correction+epsilon))*norm(k_thetaP*theta_p)*(k_thetaP*theta_p + epsilon/norm(k_thetaP*theta_p  + epsilon)); 
+    rotVel_gain_temp =  rotVel_gain_temp + rotVel_gain_dot_temp*dt;
     // rotVel_gain_dot = k_bar*psi_norm*psi_sgn;
 
 
@@ -370,8 +369,8 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
 
     printf("rotVel_gain");
     printf("%f\n",rotVel_gain);
-    // printf("rotVel_gain_dot");
-    // printf("%f\n",rotVel_gain_dot);
+    printf("rotVel_gain_dot");
+    printf("%f\n",rotVel_gain_dot);
 
     // Adaptive law for Rotational Velocity gain
 
@@ -379,7 +378,7 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     float AdvVel_gain_temp = AdvVel_gain;
 
 
-    AdvVel_gain_dot_temp = k_adv*norm(k_d*signed_distance)*(k_d*signed_distance - epsilon/norm(k_d*signed_distance - epsilon));
+    AdvVel_gain_dot_temp = k_adv*norm(k_d*signed_distance)*(k_d*signed_distance + epsilon/norm(k_d*signed_distance + epsilon));
     AdvVel_gain_temp = AdvVel_gain + AdvVel_gain_dot_temp*dt;
     AdvVel_gain_temp = std::min(AdvVel_gain_temp,AdvVel_gain_max);
 
@@ -412,7 +411,7 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
                       euc_dist_to_target);
     adv_vel_ant = advVel;
 
-    return std::make_tuple(advVel*abs(AdvVel_gain), 0.0, rotVel);
+    return std::make_tuple(advVel*AdvVel_gain, 0.0, rotVel);
 }
 
 //
