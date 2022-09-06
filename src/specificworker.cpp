@@ -275,7 +275,7 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     float k_d = 1.5;
     float cs = 30;
     float rotVel_gain = 0.4;
-    float AdvVel_gain = 1.1;
+    float AdvVel_gain = 0.9;
     float rotVel_gain_dot = 0.1;
     float AdvVel_gain_dot = 0.1;
     float dt = 0.01;
