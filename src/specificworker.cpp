@@ -273,9 +273,10 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     float k_phi = 15;
     float k_thetaP = 50;
     float k_d = 1.5;
-    float cs = 30;
+    float cs = consts.robot_radius;
     float rotVel_gain = 0.4;
     float AdvVel_gain = 0.9;
+    float AdvVel_gain_max = 1.2;
     float rotVel_gain_dot = 0.1;
     float AdvVel_gain_dot = 0.1;
     float dt = 0.01;
@@ -309,6 +310,8 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     /// Compute rotational speed with the Stanley algorithm
     // closest point to robot nose in path
     auto closest_point_to_nose = std::ranges::min_element(path, [robot_nose](auto &a, auto &b){ return (robot_nose - a).norm() < (robot_nose - b).norm();});
+    printf("closest_point_to_nose :");
+    cout << std::distance(path.cbegin(), closest_point_to_nose) << endl << std::distance(closest_point_to_nose, path.cend()) << endl;
 
     // compute angle between robot-to-nose line and  tangent to closest point in path
     QLineF tangent;
@@ -331,8 +334,8 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
     adv_vel_ant = std::clamp(adv_vel_ant, 10.f, 1000.f);
     float correction = atan2( consts.lateral_correction_gain * signed_distance, adv_vel_ant);
     angle +=  correction;
-    printf("correction :");
-    printf("%f\n", correction);
+    // printf("correction :");
+    // printf("%f\n", correction);
 
 
     //Adding Sliding Mode Controller Code
@@ -367,8 +370,8 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
 
     printf("rotVel_gain");
     printf("%f\n",rotVel_gain);
-    printf("rotVel_gain_dot");
-    printf("%f\n",rotVel_gain_dot);
+    // printf("rotVel_gain_dot");
+    // printf("%f\n",rotVel_gain_dot);
 
     // Adaptive law for Rotational Velocity gain
 
@@ -378,6 +381,7 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
 
     AdvVel_gain_dot_temp = k_adv*norm(k_d*signed_distance)*(k_d*signed_distance - epsilon/norm(k_d*signed_distance - epsilon));
     AdvVel_gain_temp = AdvVel_gain + AdvVel_gain_dot_temp*dt;
+    AdvVel_gain_temp = std::min(AdvVel_gain_temp,AdvVel_gain_max);
 
 
     // AdvVel_gain = std::clamp(AdvVel_gain,AdvVel_gain_min,AdvVel_gain_max);
@@ -388,8 +392,8 @@ std::tuple<float, float, float> SpecificWorker::update(const std::vector<Eigen::
 
     printf("AdvVel_gain");
     printf("%f\n",AdvVel_gain);
-    printf("AdvVel_gain_dot");
-    printf("%f\n",AdvVel_gain_dot);
+    // printf("AdvVel_gain_dot");
+    // printf("%f\n",AdvVel_gain_dot);
 
     // rot speed gain
     // rotVel = consts.rotation_gain * angle;
