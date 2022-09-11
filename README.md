@@ -2,7 +2,7 @@
 
 ### GSOC 2022 with Robocomp
 
-For GSoC'22 a paper titled "On adaptive sliding mode control without a priori bounded uncertainty" has been implemented on a giraff robot using Robocomp framework visualised on Coppelia Sim to adaptively track a trajectory.
+For GSoC'22 a [paper](https://www.sciencedirect.com/science/article/pii/S0005109819305114) titled "On adaptive sliding mode control without a priori bounded uncertainty" has been implemented on a giraff robot using Robocomp framework visualised on Coppelia Sim to adaptively track a trajectory.
 
 ## Table of Contents
 
